@@ -6,16 +6,7 @@ This plugin show the Histogram of time series data.
 
 ### How this plugin works
 
-This plugin receives raw time series data with value,timestamp pairs like other plugins however it works on data that is not a valid unix epoch... Lets say our incomming data looks like this
-
-value: 12.21, timestamp: 1
-value: 12.13, timestamp: 2
-value: 13.32, timestamp: 3
-value: 14.57, timestamp: 4
-value: 15.52, timestamp: 5
-value: 12.24, timestamp: 6
-
-The y values would be plotted normally, but the x axis would go from 1 to 6, since these are not valid timestamps the drag zoom function would be broken, to fix this we only zoom on the localized data without trying to fetch new data from the server.  Zooming on this graph will not affect other graphs.
+This plugin receives raw time series data, and count each value occurrence, and then show the occurrence as histogram.
 
 ### Supported Datasources
 
@@ -35,6 +26,7 @@ Should work with Graphite / InfluxDB / OpenTSDB.
 ### Known Issues
 
 - This plugin doesn't support Elasticsearch aggregation.
+  - As noted above, this plugin make histogram data in plugin.
   - Can't handle the Elasticsearch aggregation result yet.
 
 ------

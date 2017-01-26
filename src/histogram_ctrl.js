@@ -19,6 +19,8 @@ export class HistogramCtrl extends MetricsPanelCtrl {
     this.hiddenSeries = {};
     this.seriesList = [];
     this.colors = [];
+    
+    this.isPng  = false;
 
     var panelDefaults = {
       // datasource name, null = default datasource
@@ -151,8 +153,9 @@ export class HistogramCtrl extends MetricsPanelCtrl {
     });
     return super.issueQueries(datasource);
   }
-
-  zoomOut(evt) {
+  
+    zoomOut(evt) {
+     //   debugger;
     this.publishAppEvent('zoom-out', evt);
   }
 
@@ -171,9 +174,11 @@ export class HistogramCtrl extends MetricsPanelCtrl {
   }
 
   onDataReceived(dataList) {
+      
     // png renderer returns just a url
     if (_.isString(dataList)) {
       this.render(dataList);
+      this.isPng = true;
       return;
     }
 
@@ -194,6 +199,11 @@ export class HistogramCtrl extends MetricsPanelCtrl {
   }
 
   seriesHandler(seriesData, index) {
+      
+     // if(isPng){
+    //      return [];
+    //  } 
+
     var datapoints = seriesData.datapoints;
     var alias = seriesData.target;
     var colorIndex = index % this.colors.length;
@@ -207,11 +217,11 @@ export class HistogramCtrl extends MetricsPanelCtrl {
     });
 
     if (datapoints && datapoints.length > 0) {
-      var last = moment.utc(datapoints[datapoints.length - 1][1]);
-      var from = moment.utc(this.range.from);
-      if (last - from < -10000) {
-        this.datapointsOutside = true;
-      }
+   //   var last = moment.utc(datapoints[datapoints.length - 1][1]);
+   //   var from = moment.utc(this.range.from);
+   //   if (last - from < -10000) {
+   //     this.datapointsOutside = true;
+   //   }
 
       this.datapointsCount += datapoints.length;
       this.panel.tooltip.msResolution = this.panel.tooltip.msResolution || series.isMsResolutionNeeded();
@@ -286,7 +296,7 @@ export class HistogramCtrl extends MetricsPanelCtrl {
   }
 
   toggleAxis(info) {
-    var override = _.findWhere(this.panel.seriesOverrides, {alias: info.alias});
+    var override = _.find(this.panel.seriesOverrides, {alias: info.alias});
     if (!override) {
       override = { alias: info.alias };
       this.panel.seriesOverrides.push(override);

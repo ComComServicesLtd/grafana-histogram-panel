@@ -25,6 +25,37 @@ angular.module('grafana.directives').directive('grafanaHistogram', function($roo
       var sortedSeries;
       var legendSideLastValue = null;
       var rootScope = scope.$root;
+      var self = this;
+      var isPng = false;
+      
+      
+        elem.bind("plotselected", function (event, ranges) {
+            
+            
+         // debugger;
+          
+          if(scope.isPng){
+                      scope.$apply(function() {
+          timeSrv.setTime({
+            from  : moment.utc(ranges.xaxis.from),
+            to    : moment.utc(ranges.xaxis.to),
+          });
+        });
+                      
+          } else {
+              scope.zoomPlot(ranges.xaxis.from,ranges.xaxis.to);
+              
+          }
+      });
+        
+     
+        elem.bind("dblclick", function (event) {
+        
+
+                 scope.zoomOut();
+      });
+        
+        
 
       rootScope.onAppEvent('setCrosshair', function(event, info) {
         // do not need to to this if event is from this panel
@@ -93,10 +124,15 @@ angular.module('grafana.directives').directive('grafanaHistogram', function($roo
 
         if (!setElementHeight()) { return true; }
 
+      //  debugger;
+        
         if(_.isString(data)) {
-          render_panel_as_graphite_png(data);
-          return true;
+          render_png(data);
+          data = [];
         }
+        
+        console.log("Should Abort Render();");
+        console.log(data);
 
         if (elem.width() === 0) {
           return true;
@@ -106,6 +142,8 @@ angular.module('grafana.directives').directive('grafanaHistogram', function($roo
       function drawHook(plot) {
         // Update legend values
         var yaxis = plot.getYAxes();
+        
+        if(!isPng){
         for (var i = 0; i < data.length; i++) {
           var series = data[i];
           var axis = yaxis[series.yaxis - 1];
@@ -124,7 +162,8 @@ angular.module('grafana.directives').directive('grafanaHistogram', function($roo
 
           if(!rootScope.$$phase) { scope.$digest(); }
         }
-
+        }
+        
         // add left axis labels
         if (panel.yaxes[0].label) {
           var yaxisLabel = $("<div class='axisLabel left-yaxis-label'></div>")
@@ -149,84 +188,47 @@ angular.module('grafana.directives').directive('grafanaHistogram', function($roo
         var right = panel.yaxes[1];
         if (left.show && left.label) { gridMargin.left = 20; }
         if (right.show && right.label) { gridMargin.right = 20; }
+        
+   
+   if(this.isPng){
+                // apply y-axis min/max options
+        var yaxis = plot.getYAxes();
+        for (var i = 0; i < yaxis.length; i++) {
+          var axis = yaxis[i];
+          axis.options.max = 0;
+          axis.options.min = 500;
+        }
+      
+      }
+        
       }
 
-      function getHistogramPairs(series, fillStyle, bucketSize, minValue, maxValue, normalize) {
-        if (bucketSize === null || bucketSize <= 0) {
-          bucketSize = 1;
-        }
+      function getFFT(series) {
+          
+          if(isPng){
+              return ;//[];
+          }
+          
+        //  console.log(series);
 
-        series.yaxis = 1; // TODO check
+       // series.yaxis = 1; // TODO check
         series.stats.total = 0;
         series.stats.max = Number.MIN_VALUE;
         series.stats.min = Number.MAX_VALUE;
         series.stats.avg = null;
         series.stats.current = null;
-        var ignoreNulls = fillStyle === 'connected' || fillStyle === 'null';
-        var nullAsZero = fillStyle === 'null as zero';
-        var values = {};
-        var currentValue;
-        var filterMin = false;
-        var filterMax = false;
-        if (_.isNumber(minValue) && !isNaN(minValue)) {
-          values[minValue] = [minValue, 0];
-          filterMin = true;
-        }
-        if (_.isNumber(maxValue) && !isNaN(maxValue)) {
-          values[maxValue] = [maxValue, 0];
-          filterMax = true;
-        }
-        for (var i = 0; i < series.datapoints.length; i++) {
-          currentValue = series.datapoints[i][0];
-          if (currentValue === null) {
-            if (ignoreNulls) { continue; }
-            if (nullAsZero) {
-              currentValue = 0;
-            }
-          }
-          if (_.isNumber(currentValue)) {
-            series.stats.total += currentValue;
-          }
-          if (currentValue > series.stats.max) {
-            series.stats.max = currentValue;
-          }
-          if (currentValue < series.stats.min) {
-            series.stats.min = currentValue;
-          }
-          if(filterMin && currentValue < minValue) continue;
-          if(filterMax && currentValue > maxValue) continue;
-
-          var bucket = Math.floor(currentValue / bucketSize) * bucketSize;
-          if (bucket in values) {
-            values[bucket][1]++;
-          } else {
-            values[bucket] = [bucket, 1];
-          }
-        }
-
-        var result = _.sortBy(values, x => x[0]);
-        if (normalize) {
-          result = _.map(values, x => {
-            return [x[0], x[1] / series.stats.total];
-          });
-        }
-        series.stats.timeStep = bucketSize;
-        if (series.stats.max === Number.MIN_VALUE) { series.stats.max = null; }
-        if (series.stats.min === Number.MAX_VALUE) { series.stats.min = null; }
-        if (result.length) {
-          var count = _.reduce(_.values(values), function(memo, num) { return memo + num; }, 0);
-          series.stats.avg = series.stats.total / count;
-          series.stats.current = currentValue;
-        }
-        series.stats.count = result.length;
-        return result;
+        series.stats.count = series.datapoints.length;
+        return series.datapoints;
       }
 
       // Function for rendering panel
       function render_panel() {
         if (shouldAbortRender()) {
-          return;
+          //return;
         }
+        
+        // this.seriesList = [];
+         //  this.data = [];
 
         var stack = panel.stack ? true : null;
 
@@ -242,7 +244,7 @@ angular.module('grafana.directives').directive('grafanaHistogram', function($roo
             stack: panel.percentage ? null : stack,
             bars:   {
               show: true,
-              fill: 1,
+              fill: 0.9,
               barWidth: 1,
               zero: false,
               lineWidth: 0,
@@ -270,20 +272,17 @@ angular.module('grafana.directives').directive('grafanaHistogram', function($roo
           }
         };
 
-        var scopedVars = ctrl.panel.scopedVars;
-        var bucketSize = !panel.bucketSize && panel.bucketSize !== 0 ? null : parseFloat(ctrl.templateSrv.replaceWithText(panel.bucketSize.toString(), scopedVars));
-        var minValue = !panel.minValue && panel.minValue !== 0 ? null : parseFloat(ctrl.templateSrv.replaceWithText(panel.minValue.toString(), scopedVars));
-        var maxValue = !panel.maxValue && panel.maxValue !== 0 ? null : parseFloat(ctrl.templateSrv.replaceWithText(panel.maxValue.toString(), scopedVars));
-
-        switch(panel.bucketMode) {
-          case 'count':
-            bucketSize = (maxValue - minValue) / bucketSize;
-            break;
-        }
+       // var scopedVars = ctrl.panel.scopedVars;
+    ////    var bucketSize = !panel.bucketSize && panel.bucketSize !== 0 ? null : parseFloat(ctrl.templateSrv.replaceWithText(panel.bucketSize.toString(), scopedVars));
+    //    var minValue = !panel.minValue && panel.minValue !== 0 ? null : parseFloat(ctrl.templateSrv.replaceWithText(panel.minValue.toString(), scopedVars));
+    //    var maxValue = !panel.maxValue && panel.maxValue !== 0 ? null : parseFloat(ctrl.templateSrv.replaceWithText(panel.maxValue.toString(), scopedVars));
+if(!isPng){
 
         for (var i = 0; i < data.length; i++) {
           var series = data[i];
-          series.data = getHistogramPairs(series, series.nullPointMode || panel.nullPointMode, bucketSize || 1, minValue, maxValue, panel.normalize);
+          series.data = getFFT(series);
+          
+          options.series.bars.barWidth = (elem.width()/series.data.length) * 2;
 
           // if hidden remove points and disable stack
           if (ctrl.hiddenSeries[series.alias]) {
@@ -291,13 +290,17 @@ angular.module('grafana.directives').directive('grafanaHistogram', function($roo
             series.stack = false;
           }
         }
+       // debugger;
 
-        if (data.length && data[0].stats.timeStep) {
-          options.series.bars.barWidth = data[0].stats.timeStep / 1.5;
-        }
-
-        addHistogramAxis(options);
-        options.selection = {};
+       // if (data.length && data[0].stats.timeStep) {
+          //data[0].stats.timeStep / 1.5;
+       // }
+}
+       
+     //  panel.yaxes[1].show = true;
+        configureAxisOptions(data, options);
+      //  addHistogramAxis(options);
+       // options.selection = {};
 
         sortedSeries = _.sortBy(data, function(series) { return series.zindex; });
 
@@ -312,6 +315,30 @@ angular.module('grafana.directives').directive('grafanaHistogram', function($roo
             ctrl.renderingCompleted();
           }
         }
+        
+        scope.isPng = isPng;
+        
+        
+         scope.zoomPlot = function(start, end) {
+             
+             options.xaxis.min = start;
+             options.xaxis.max = end;
+
+             callPlot(true);
+        };
+        
+       scope.zoomOut = function() {
+           if(isPng){
+             //  this.ctrl.events.emit('zoom-out');
+               this.ctrl.publishAppEvent('zoom-out',2);
+           } else {
+             options.xaxis.min = null;
+             options.xaxis.max = null;
+             callPlot(true);
+           }
+             
+        };
+        
 
         if (shouldDelayDraw(panel)) {
           // temp fix for legends on the side, need to render twice to get dimensions right
@@ -337,55 +364,86 @@ angular.module('grafana.directives').directive('grafanaHistogram', function($roo
         }
       }
 
-      function addHistogramAxis(options) {
+      
+           function configureAxisOptions(data, options) {
+               
+               
+
+        
+        if(isPng){
+        var ticks = elem.width() / 100;
+        var min = _.isUndefined(ctrl.range.from) ? null : ctrl.range.from.valueOf();
+        var max = _.isUndefined(ctrl.range.to) ? null : ctrl.range.to.valueOf();
+
         options.xaxis = {
-          show: panel['x-axis'],
-          label: "Values"
+          timezone: dashboard.getTimezone(),
+          show: panel.xaxis.show,
+          mode: "time",
+          min: min,
+          max: max,
+          label: "Datetime",
+          ticks: ticks,
+          timeformat: time_format(ticks, min, max),
         };
-      }
+        
+                       
+        var defaults = {
+          position: 'left',
+          show: true,
+          index: 1,
+          logBase:1,
+          max: 8000,
+          min: 0
+        };
 
-      function applyLogScale(axis, data) {
-        if (axis.logBase === 1) {
-          return;
-        }
+        options.yaxes.push(defaults);
 
-        var series, i;
-        var max = axis.max;
+          var secondY = _.clone(defaults);
+          secondY.index = 2;
+          secondY.show = true;
+          secondY.logBase = 1;
+          secondY.position = 'right';
+          options.yaxes.push(secondY);
 
-        if (max === null) {
-          for (i = 0; i < data.length; i++) {
-            series = data[i];
-            if (series.yaxis === axis.index) {
-              if (max < series.stats.max) {
-                max = series.stats.max;
-              }
-            }
-          }
-          if (max === void 0) {
-            max = Number.MAX_VALUE;
-          }
-        }
-
-        axis.min = axis.min !== null ? axis.min : 0;
-        axis.ticks = [0, 1];
-        var nextTick = 1;
-
-        while (true) {
-          nextTick = nextTick * axis.logBase;
-          axis.ticks.push(nextTick);
-          if (nextTick > max) {
-            break;
-          }
-        }
-
-        if (axis.logBase === 10) {
-          axis.transform = function(v) { return Math.log(v+0.1); };
-          axis.inverseTransform  = function (v) { return Math.pow(10,v); };
+          
+          
+            
         } else {
-          axis.transform = function(v) { return Math.log(v+0.1) / Math.log(axis.logBase); };
-          axis.inverseTransform  = function (v) { return Math.pow(axis.logBase,v); };
+            
+          options.xaxis = {
+          show: panel['x-axis'],
+          label: "Values",
+        };
+        
+                       
+        var defaults = {
+          position: 'left',
+          show: true,
+          index: 1,
+          logBase:1,
+          max: null,
+          min: null
+        };
+
+        options.yaxes.push(defaults);
+
+          var secondY = _.clone(defaults);
+          secondY.index = 2;
+          secondY.show = true;
+          secondY.logBase = 1;
+          secondY.position = 'right';
+          options.yaxes.push(secondY);
+
+          
+            
         }
+        
+        
+
+
       }
+
+
 
       function configureAxisMode(axis, format) {
         axis.tickFormatter = function(val, axis) {
@@ -418,83 +476,15 @@ angular.module('grafana.directives').directive('grafanaHistogram', function($roo
         return "%H:%M";
       }
 
-      function render_panel_as_graphite_png(url) {
-        url += '&width=' + elem.width();
-        url += '&height=' + elem.css('height').replace('px', '');
-        url += '&bgcolor=1f1f1f'; // @grayDarker & @grafanaPanelBackground
-        url += '&fgcolor=BBBFC2'; // @textColor & @grayLighter
-        url += panel.stack ? '&areaMode=stacked' : '';
-        url += panel.fill !== 0 ? ('&areaAlpha=' + (panel.fill/10).toFixed(1)) : '';
-        url += panel.linewidth !== 0 ? '&lineWidth=' + panel.linewidth : '';
-        url += panel.legend.show ? '&hideLegend=false' : '&hideLegend=true';
-        url += panel.grid.leftMin !== null ? '&yMin=' + panel.grid.leftMin : '';
-        url += panel.grid.leftMax !== null ? '&yMax=' + panel.grid.leftMax : '';
-        url += panel.grid.rightMin !== null ? '&yMin=' + panel.grid.rightMin : '';
-        url += panel.grid.rightMax !== null ? '&yMax=' + panel.grid.rightMax : '';
-        url += panel['x-axis'] ? '' : '&hideAxes=true';
-        url += panel['y-axis'] ? '' : '&hideYAxis=true';
-
-        switch(panel.yaxes[0].format) {
-          case 'bytes':
-            url += '&yUnitSystem=binary';
-            break;
-          case 'bits':
-            url += '&yUnitSystem=binary';
-            break;
-          case 'bps':
-            url += '&yUnitSystem=si';
-            break;
-          case 'pps':
-            url += '&yUnitSystem=si';
-            break;
-          case 'Bps':
-            url += '&yUnitSystem=si';
-            break;
-          case 'short':
-            url += '&yUnitSystem=si';
-            break;
-          case 'joule':
-            url += '&yUnitSystem=si';
-            break;
-          case 'watt':
-            url += '&yUnitSystem=si';
-            break;
-          case 'ev':
-            url += '&yUnitSystem=si';
-            break;
-          case 'none':
-            url += '&yUnitSystem=none';
-            break;
-        }
-
-        switch(panel.nullPointMode) {
-          case 'connected':
-            url += '&lineMode=connected';
-            break;
-          case 'null':
-            break; // graphite default lineMode
-          case 'null as zero':
-            url += "&drawNullAsZero=true";
-            break;
-        }
-
-        url += panel.steppedLine ? '&lineMode=staircase' : '';
-
-        elem.html('<img src="' + url + '"></img>');
+      function render_png(url) {
+        isPng = true;
+        elem.html('<img height="' + elem.height() + '" width="' + elem.width() + '" src="' + url + '"></img>');
       }
 
       new HistogramTooltip(elem, dashboard, scope, function() {
         return sortedSeries;
       });
 
-      elem.bind("plotselected", function (event, ranges) {
-        scope.$apply(function() {
-          timeSrv.setTime({
-            from  : moment.utc(ranges.xaxis.from),
-            to    : moment.utc(ranges.xaxis.to),
-          });
-        });
-      });
     }
   };
 });
