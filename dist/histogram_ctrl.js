@@ -1,6 +1,8 @@
 'use strict';
 
 System.register(['app/plugins/panel/graph/legend', 'app/plugins/panel/graph/series_overrides_ctrl', './template', 'angular', 'moment', 'app/core/utils/kbn', 'lodash', 'app/core/time_series2', 'app/core/utils/file_export', 'app/plugins/sdk'], function (_export, _context) {
+  "use strict";
+
   var template, angular, moment, kbn, _, TimeSeries, fileExport, MetricsPanelCtrl, _createClass, _get, HistogramCtrl;
 
   function _classCallCheck(instance, Constructor) {
@@ -99,16 +101,17 @@ System.register(['app/plugins/panel/graph/legend', 'app/plugins/panel/graph/seri
         _inherits(HistogramCtrl, _MetricsPanelCtrl);
 
         /** @ngInject */
-
         function HistogramCtrl($scope, $injector, annotationsSrv) {
           _classCallCheck(this, HistogramCtrl);
 
-          var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(HistogramCtrl).call(this, $scope, $injector));
+          var _this = _possibleConstructorReturn(this, (HistogramCtrl.__proto__ || Object.getPrototypeOf(HistogramCtrl)).call(this, $scope, $injector));
 
           _this.annotationsSrv = annotationsSrv;
           _this.hiddenSeries = {};
           _this.seriesList = [];
           _this.colors = [];
+
+          _this.isPng = false;
 
           var panelDefaults = {
             // datasource name, null = default datasource
@@ -242,11 +245,12 @@ System.register(['app/plugins/panel/graph/legend', 'app/plugins/panel/graph/seri
               panel: this.panel,
               range: this.range
             });
-            return _get(Object.getPrototypeOf(HistogramCtrl.prototype), 'issueQueries', this).call(this, datasource);
+            return _get(HistogramCtrl.prototype.__proto__ || Object.getPrototypeOf(HistogramCtrl.prototype), 'issueQueries', this).call(this, datasource);
           }
         }, {
           key: 'zoomOut',
           value: function zoomOut(evt) {
+            //   debugger;
             this.publishAppEvent('zoom-out', evt);
           }
         }, {
@@ -273,6 +277,7 @@ System.register(['app/plugins/panel/graph/legend', 'app/plugins/panel/graph/seri
             // png renderer returns just a url
             if (_.isString(dataList)) {
               this.render(dataList);
+              this.isPng = true;
               return;
             }
 
@@ -294,6 +299,11 @@ System.register(['app/plugins/panel/graph/legend', 'app/plugins/panel/graph/seri
         }, {
           key: 'seriesHandler',
           value: function seriesHandler(seriesData, index) {
+
+            // if(isPng){
+            //      return [];
+            //  } 
+
             var datapoints = seriesData.datapoints;
             var alias = seriesData.target;
             var colorIndex = index % this.colors.length;
@@ -307,11 +317,11 @@ System.register(['app/plugins/panel/graph/legend', 'app/plugins/panel/graph/seri
             });
 
             if (datapoints && datapoints.length > 0) {
-              var last = moment.utc(datapoints[datapoints.length - 1][1]);
-              var from = moment.utc(this.range.from);
-              if (last - from < -10000) {
-                this.datapointsOutside = true;
-              }
+              //   var last = moment.utc(datapoints[datapoints.length - 1][1]);
+              //   var from = moment.utc(this.range.from);
+              //   if (last - from < -10000) {
+              //     this.datapointsOutside = true;
+              //   }
 
               this.datapointsCount += datapoints.length;
               this.panel.tooltip.msResolution = this.panel.tooltip.msResolution || series.isMsResolutionNeeded();
@@ -396,7 +406,7 @@ System.register(['app/plugins/panel/graph/legend', 'app/plugins/panel/graph/seri
         }, {
           key: 'toggleAxis',
           value: function toggleAxis(info) {
-            var override = _.findWhere(this.panel.seriesOverrides, { alias: info.alias });
+            var override = _.find(this.panel.seriesOverrides, { alias: info.alias });
             if (!override) {
               override = { alias: info.alias };
               this.panel.seriesOverrides.push(override);

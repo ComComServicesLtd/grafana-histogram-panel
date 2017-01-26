@@ -1,6 +1,8 @@
 'use strict';
 
 System.register(['jquery'], function (_export, _context) {
+  "use strict";
+
   var $;
   function HistogramTooltip(elem, dashboard, scope, getSeriesFn) {
     var self = this;
@@ -33,7 +35,7 @@ System.register(['jquery'], function (_export, _context) {
     };
 
     this.showTooltip = function (title, innerHtml, pos) {
-      var body = '<div class="graph-tooltip-time">' + title + '</div>';
+      var body = '<div class="graph-tooltip-time">' + title + 'hz</div>';
       body += innerHtml + '</div>';
       $tooltip.html(body).place_tt(pos.pageX + 20, pos.pageY);
     };
@@ -115,9 +117,9 @@ System.register(['jquery'], function (_export, _context) {
         tooltipFormat = 'YYYY-MM-DD HH:mm:ss';
       }
 
-      if (dashboard.sharedCrosshair) {
-        ctrl.publishAppEvent('setCrosshair', { pos: pos, scope: scope });
-      }
+      //  if (dashboard.sharedCrosshair) {
+      //   ctrl.publishAppEvent('setCrosshair', { pos: pos, scope: scope });
+      // }
 
       if (seriesList.length === 0) {
         return;
@@ -144,11 +146,12 @@ System.register(['jquery'], function (_export, _context) {
 
           series = seriesList[i];
 
+          //debugger;
           value = series.formatValue(hoverInfo.value);
 
           seriesHtml += '<div class="graph-tooltip-list-item ' + highlightClass + '"><div class="graph-tooltip-series-name">';
           seriesHtml += '<i class="fa fa-minus" style="color:' + series.color + ';"></i> ' + series.label + ':</div>';
-          seriesHtml += '<div class="graph-tooltip-value">' + value + '</div></div>';
+          seriesHtml += '<div class="graph-tooltip-value">' + value + ' G</div></div>';
           plot.highlight(i, hoverInfo.hoverIndex);
         }
 
@@ -168,7 +171,7 @@ System.register(['jquery'], function (_export, _context) {
 
           value = series.formatValue(value);
 
-          group += '<div class="graph-tooltip-value">' + value + '</div>';
+          group += '<div class="graph-tooltip-value">' + value + ' G</div>';
 
           self.showTooltip(item.datapoint[0], group, pos);
         }

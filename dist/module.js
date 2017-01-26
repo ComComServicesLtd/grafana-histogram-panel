@@ -1,6 +1,8 @@
 'use strict';
 
 System.register(['lodash', './histogram_ctrl', './histogram'], function (_export, _context) {
+  "use strict";
+
   var _, HistogramCtrl;
 
   return {
