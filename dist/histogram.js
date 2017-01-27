@@ -38,8 +38,6 @@ System.register(['angular', 'jquery', 'moment', 'lodash', 'app/core/utils/kbn', 
 
             elem.bind("plotselected", function (event, ranges) {
 
-              // debugger;
-
               if (scope.isPng) {
                 scope.$apply(function () {
                   timeSrv.setTime({
@@ -126,8 +124,6 @@ System.register(['angular', 'jquery', 'moment', 'lodash', 'app/core/utils/kbn', 
               if (!setElementHeight()) {
                 return true;
               }
-
-              //  debugger;
 
               if (_.isString(data)) {
                 render_png(data);
@@ -284,7 +280,7 @@ System.register(['angular', 'jquery', 'moment', 'lodash', 'app/core/utils/kbn', 
                   var series = data[i];
                   series.data = getFFT(series);
 
-                  options.series.bars.barWidth = elem.width() / series.data.length * 2;
+                  options.series.bars.barWidth = (series.data[series.data.length - 1][0] + series.data[0][0]) / series.data.length; //(elem.width()/series.data.length);
 
                   // if hidden remove points and disable stack
                   if (ctrl.hiddenSeries[series.alias]) {
@@ -292,11 +288,13 @@ System.register(['angular', 'jquery', 'moment', 'lodash', 'app/core/utils/kbn', 
                     series.stack = false;
                   }
                 }
-                // debugger;
 
                 // if (data.length && data[0].stats.timeStep) {
                 //data[0].stats.timeStep / 1.5;
                 // }
+              } else {
+
+                addAnnotations(options);
               }
 
               //  panel.yaxes[1].show = true;
@@ -364,6 +362,57 @@ System.register(['angular', 'jquery', 'moment', 'lodash', 'app/core/utils/kbn', 
               if (legendSideLastValue !== null && panel.legend.rightSide !== legendSideLastValue) {
                 return true;
               }
+            }
+
+            function addAnnotations(options) {
+
+              if (!annotations || annotations.length === 0) {
+                return;
+              }
+
+              var types = {};
+              types['$__alerting'] = {
+                color: 'rgba(237, 46, 24, 1)',
+                position: 'BOTTOM',
+                markerSize: 5
+              };
+
+              types['$__ok'] = {
+                color: 'rgba(11, 237, 50, 1)',
+                position: 'BOTTOM',
+                markerSize: 5
+              };
+
+              types['$__no_data'] = {
+                color: 'rgba(150, 150, 150, 1)',
+                position: 'BOTTOM',
+                markerSize: 5
+              };
+
+              types['$__execution_error'] = ['$__no_data'];
+
+              for (var i = 0; i < annotations.length; i++) {
+                var item = annotations[i];
+                if (item.newState) {
+                  console.log(item.newState);
+                  item.eventType = '$__' + item.newState;
+                  continue;
+                }
+
+                if (!types[item.source.name]) {
+                  types[item.source.name] = {
+                    color: item.source.iconColor,
+                    position: 'BOTTOM',
+                    markerSize: 5
+                  };
+                }
+              }
+
+              options.events = {
+                levels: _.keys(types).length + 1,
+                data: annotations,
+                types: types
+              };
             }
 
             function configureAxisOptions(data, options) {
@@ -460,8 +509,8 @@ System.register(['angular', 'jquery', 'moment', 'lodash', 'app/core/utils/kbn', 
             }
 
             function render_png(url) {
-              isPng = true;
-              elem.html('<img height="' + elem.height() + '" width="' + elem.width() + '" src="' + url + '"></img>');
+              isPng = true; //' + elem.height() + ' ' + elem.width() + '
+              elem.html('<img style="padding-top: 9px; padding-left: 34px; padding-bottom: 21px; padding-right: 34px;" height="100%" width="100%" src="' + url + '"></img>');
             }
 
             new HistogramTooltip(elem, dashboard, scope, function () {

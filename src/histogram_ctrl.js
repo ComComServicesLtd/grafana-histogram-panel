@@ -122,7 +122,7 @@ export class HistogramCtrl extends MetricsPanelCtrl {
   onInitEditMode() {
     this.addEditorTab('Legend', 'public/app/plugins/panel/graph/tab_legend.html', 2);
     this.addEditorTab('Display', 'public/plugins/mtanda-histogram-panel/tab_display.html', 3);
-    this.addEditorTab('Histogram Options', 'public/plugins/mtanda-histogram-panel/tab_options.html', 4);
+   // this.addEditorTab('Histogram Options', 'public/plugins/mtanda-histogram-panel/tab_options.html', 4);
 
     this.logScales = {
       'linear': 1,
@@ -155,7 +155,6 @@ export class HistogramCtrl extends MetricsPanelCtrl {
   }
   
     zoomOut(evt) {
-     //   debugger;
     this.publishAppEvent('zoom-out', evt);
   }
 
@@ -175,6 +174,19 @@ export class HistogramCtrl extends MetricsPanelCtrl {
 
   onDataReceived(dataList) {
       
+      
+      this.annotationsPromise.then(result => {
+      this.loading = false;
+      this.alertState = result.alertState;
+      this.annotations = result.annotations;
+     
+      this.render({annotations: this.annotations});
+    }, () => {
+      this.loading = false;
+      this.render({annotations: this.annotations})
+    });
+           
+           
     // png renderer returns just a url
     if (_.isString(dataList)) {
       this.render(dataList);
@@ -188,14 +200,11 @@ export class HistogramCtrl extends MetricsPanelCtrl {
     this.seriesList = dataList.map(this.seriesHandler.bind(this));
     this.datapointsWarning = this.datapointsCount === 0 || this.datapointsOutside;
 
-    this.annotationsPromise.then(annotations => {
-      this.loading = false;
-      this.seriesList.annotations = annotations;
-      this.render(this.seriesList);
-    }, () => {
-      this.loading = false;
-      this.render(this.seriesList);
-    });
+    
+    
+
+        
+        
   }
 
   seriesHandler(seriesData, index) {

@@ -213,7 +213,7 @@ System.register(['app/plugins/panel/graph/legend', 'app/plugins/panel/graph/seri
           value: function onInitEditMode() {
             this.addEditorTab('Legend', 'public/app/plugins/panel/graph/tab_legend.html', 2);
             this.addEditorTab('Display', 'public/plugins/mtanda-histogram-panel/tab_display.html', 3);
-            this.addEditorTab('Histogram Options', 'public/plugins/mtanda-histogram-panel/tab_options.html', 4);
+            // this.addEditorTab('Histogram Options', 'public/plugins/mtanda-histogram-panel/tab_options.html', 4);
 
             this.logScales = {
               'linear': 1,
@@ -250,7 +250,6 @@ System.register(['app/plugins/panel/graph/legend', 'app/plugins/panel/graph/seri
         }, {
           key: 'zoomOut',
           value: function zoomOut(evt) {
-            //   debugger;
             this.publishAppEvent('zoom-out', evt);
           }
         }, {
@@ -274,6 +273,17 @@ System.register(['app/plugins/panel/graph/legend', 'app/plugins/panel/graph/seri
           value: function onDataReceived(dataList) {
             var _this2 = this;
 
+            this.annotationsPromise.then(function (result) {
+              _this2.loading = false;
+              _this2.alertState = result.alertState;
+              _this2.annotations = result.annotations;
+
+              _this2.render({ annotations: _this2.annotations });
+            }, function () {
+              _this2.loading = false;
+              _this2.render({ annotations: _this2.annotations });
+            });
+
             // png renderer returns just a url
             if (_.isString(dataList)) {
               this.render(dataList);
@@ -286,15 +296,6 @@ System.register(['app/plugins/panel/graph/legend', 'app/plugins/panel/graph/seri
             this.datapointsOutside = false;
             this.seriesList = dataList.map(this.seriesHandler.bind(this));
             this.datapointsWarning = this.datapointsCount === 0 || this.datapointsOutside;
-
-            this.annotationsPromise.then(function (annotations) {
-              _this2.loading = false;
-              _this2.seriesList.annotations = annotations;
-              _this2.render(_this2.seriesList);
-            }, function () {
-              _this2.loading = false;
-              _this2.render(_this2.seriesList);
-            });
           }
         }, {
           key: 'seriesHandler',
