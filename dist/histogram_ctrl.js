@@ -273,29 +273,32 @@ System.register(['app/plugins/panel/graph/legend', 'app/plugins/panel/graph/seri
           value: function onDataReceived(dataList) {
             var _this2 = this;
 
-            this.annotationsPromise.then(function (result) {
-              _this2.loading = false;
-              _this2.alertState = result.alertState;
-              _this2.annotations = result.annotations;
-
-              _this2.render({ annotations: _this2.annotations });
-            }, function () {
-              _this2.loading = false;
-              _this2.render({ annotations: _this2.annotations });
-            });
+            //  this.dataList = dataList;
 
             // png renderer returns just a url
             if (_.isString(dataList)) {
-              this.render(dataList);
+              this.seriesList.url = dataList;
               this.isPng = true;
-              return;
+            } else {
+              this.seriesList = dataList.map(this.seriesHandler.bind(this));
             }
 
             this.datapointsWarning = false;
             this.datapointsCount = 0;
             this.datapointsOutside = false;
-            this.seriesList = dataList.map(this.seriesHandler.bind(this));
+
             this.datapointsWarning = this.datapointsCount === 0 || this.datapointsOutside;
+
+            this.annotationsPromise.then(function (result) {
+              _this2.loading = false;
+              _this2.alertState = result.alertState;
+              _this2.annotations = result.annotations;
+              _this2.seriesList.annotations = _this2.annotations;
+              _this2.render(_this2.seriesList);
+            }, function () {
+              _this2.loading = false;
+              _this2.render(_this2.seriesList);
+            });
           }
         }, {
           key: 'seriesHandler',

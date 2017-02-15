@@ -78,12 +78,20 @@ System.register(['angular', 'jquery', 'moment', 'lodash', 'app/core/utils/kbn', 
 
             // Receive render events
             ctrl.events.on('render', function (renderData) {
+              //   debugger;
               data = renderData || data;
               if (!data) {
                 ctrl.refresh();
                 return;
               }
+
               annotations = data.annotations || annotations;
+
+              if (_.isString(data.url)) {
+                data = data.url;
+                this.isPng = true;
+              }
+
               render_panel();
             });
 
